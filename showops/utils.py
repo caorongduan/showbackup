@@ -15,8 +15,16 @@ utils.py
 """
 
 import os
+import shutil
 
 
 def create_not_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def delete_exists(path):
+    if os.path.isfile(path):
+        os.remove(path)
+    elif os.path.isdir(path):
+        shutil.rmtree(path)
