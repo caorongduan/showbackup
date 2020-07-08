@@ -1,0 +1,15 @@
+{
+  "mysql": {
+    "host": "localhost",
+    "port": "3306",
+    "usr": "root",
+    "pwd": "",
+    "source": [
+        {"db": "testdb01", "tables": ["table01", "table02"]},
+        {"db": "testdb02", "tables": []},
+        {"db": "testdb03"}
+    ],
+    "backup_path": "./",
+    "is_zip": true
+  }
+}
