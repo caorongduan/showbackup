@@ -11,14 +11,13 @@ License: Apache2, see LICENSE for more details.
 Version: 1.0
 """
 
-import json
 from showops.mysql import backup
+from showops.utils import read_from_json_file
 
 
 if __name__ == "__main__":
-    mysql_conf = None
-    with open("./conf.json", "r") as conf_json:
-        conf_dict = json.loads(conf_json.read())
-        mysql_conf = conf_dict["mysql"]
+    config_path = "./conf.json"
+    conf_dict = read_from_json_file(config_path)
+    mysql_conf = conf_dict.get("mysql", {})
 
     backup(mysql_conf)

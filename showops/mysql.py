@@ -45,8 +45,7 @@ def run_mysqldump(usr, pwd, host, port, backup_path, is_zip, db_name=None, table
     cmd = dump_cmd_temp.format(
         usr=usr, pwd=pwd, host=host, port=port, params=default_params, source=source, target=target
     )
-    # os.system(cmd)
-    print(cmd)
+    os.system(cmd)
 
 
 def backup(conf):

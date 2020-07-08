@@ -15,6 +15,7 @@ utils.py
 """
 
 import os
+import json
 import shutil
 
 
@@ -28,3 +29,11 @@ def delete_exists(path):
         os.remove(path)
     elif os.path.isdir(path):
         shutil.rmtree(path)
+
+
+def read_from_json_file(path=None):
+    if path is None:
+        return {}
+    with open(path, "r") as json_file:
+        obj = json.loads(json_file.read())
+        return obj
