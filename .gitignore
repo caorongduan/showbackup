@@ -151,3 +151,4 @@ temp/
 test/
 gunicorn.conf.py
 .qiniu_pythonsdk_hostscache.json
+example.conf.json
