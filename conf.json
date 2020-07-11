@@ -1,15 +1,16 @@
 {
   "mysql": {
     "host": "localhost",
-    "port": "3306",
+    "port": 3306,
     "usr": "root",
-    "pwd": "Caord@mac510",
+    "pwd": "",
     "source": [
-        {"db": "testdb01", "tables": ["table01", "table02"]},
-        {"db": "testdb02", "tables": []},
-        {"db": "testdb03"}
+        {"db": "testdb01", "tables": ["users", "posts"]},
+        {"db": "testdb02"}
     ],
-    "backup_path": "./",
-    "is_zip": true
+    "backup_path": "./backup",
+    "is_zip": false,
+    "every_day_at": "17:49",
+    "keep_days": "3"
   }
 }
