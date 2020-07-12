@@ -16,6 +16,8 @@ import click
 from showbackup.mysql import Mysql
 from showbackup.utils import read_from_json_file
 
+
+version = "0.1.0"
 config_filename = "example.conf.json"
 
 
@@ -36,20 +38,30 @@ def edit_config(tips):
     click.echo("{}\n{}\n".format(tips, config_cmd))
 
 
-@click.group()
-def cli():
-    pass
+def get_version():
+    full_version = "showbackup (version {})".format(version)
+    return full_version
+
+
+@click.group(invoke_without_command=True)
+@click.option("--config", is_flag=True, default=False, help="编辑showbackup配置文件")
+@click.option("--version", "-v", is_flag=True, default=False, help="显示版本信息")
+def cli(config, version):
+    """ showbackup: 一个短小精干的mysql数据库备份工具 """
+    if config:
+        # 编辑配置文件
+        edit_config("请通过编辑showbackup配置文件来完成配置")
+        return
+    if version:
+        # 显示版本信息
+        click.echo(get_version())
+        return
 
 
 @cli.command()
-@click.option("--config", is_flag=True, default=False, help="编辑showbackup配置文件")
 @click.option("--schedule", "-s", is_flag=True, default=False, help="启用定时执行备份任务")
-def mysql(config, schedule):
-    """ showbackup 支持全库，指定库，指定表，定时快速备份。"""
-    if config:
-        # 编辑配置文件
-        edit_config("请编辑showbackup配置文件")
-        return
+def mysql(schedule):
+    """ 使用mysql子命令来对mysql进行数据备份"""
     if not config_exsits():
         edit_config("没有找到showbackup默认配置文件，请先创建并编辑")
         return

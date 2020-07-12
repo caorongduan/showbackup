@@ -45,6 +45,17 @@ class Mysql(object):
 
         return True, ""
 
+    def is_supported_binlog(self):
+        bin_log_cmd = """mysql -uroot -pCaord@mac510 -e 'show variables like "log_bin"'"""
+        result, _ = shell(bin_log_cmd)
+        for item in result:
+            item_str = item.decode("utf-8")
+            if "log_bin" in item_str and "ON" in item_str:
+                return True
+            elif "log_bin" in item_str and "OFF" in item_str:
+                return False
+        return False
+
     def run_mysqldump(self, usr, pwd, host, port, backup_path, is_zip, db_name=None, table=None):
         """ 产生mysqldump命令，支持全库，单库，数据表备份语句
         """
@@ -53,7 +64,7 @@ class Mysql(object):
             # all databases backup
             source = ""
             target = os.path.join(backup_path, "all_databases.sql")
-            default_params = "-A -B -F -R --master-data=2"
+            default_params = "-A -B -R --master-data=2"
         elif table is not None:
             # tables backup
             source = "{} {}".format(db_name, table)
@@ -63,7 +74,10 @@ class Mysql(object):
             # one database backup
             source = "{}".format(db_name)
             target = os.path.join(backup_path, "db_{}.sql".format(db_name))
-            default_params = "-B -F -R --master-data=2"
+            default_params = "-B -R --master-data=2"
+
+        if self.is_supported_binlog():
+            default_params = "-F {}".format(default_params)
 
         if is_zip:
             source = "{}|gzip".format(source)
@@ -83,6 +97,7 @@ class Mysql(object):
 
     def backup(self):
         # 定义备份文件夹生成规则 eg.'/backup/20170817_123205/database_name'
+        start_time = time.time()
         check_flag = self.check_conf()
         if not check_flag[0]:
             raise Exception(check_flag[1])
@@ -91,7 +106,7 @@ class Mysql(object):
             # all databases backup if the DB_TARGET is empty
             backup_path = os.path.join(today_path, "all_databases")
             create_not_exists(backup_path)
-            print("Starting backup of all databases")
+            print("开始执行全库备份...")
             self.run_mysqldump(
                 self.conf["usr"],
                 self.conf["pwd"],
@@ -100,16 +115,27 @@ class Mysql(object):
                 backup_path,
                 self.conf["is_zip"],
             )
-            return
-
-        for target in self.conf["source"]:
-            db_name = target["db"]
-            tables = target.get("tables", [])
-            backup_path = os.path.join(today_path, db_name)
-            create_not_exists(backup_path)
-            if len(tables) > 0:
-                for table in tables:
-                    print("Starting backup of table {}".format(table))
+        else:
+            for target in self.conf["source"]:
+                db_name = target["db"]
+                tables = target.get("tables", [])
+                backup_path = os.path.join(today_path, db_name)
+                create_not_exists(backup_path)
+                if len(tables) > 0:
+                    for table in tables:
+                        print("开始备份数据表：{}".format(table))
+                        self.run_mysqldump(
+                            self.conf["usr"],
+                            self.conf["pwd"],
+                            self.conf["host"],
+                            self.conf["port"],
+                            backup_path,
+                            self.conf["is_zip"],
+                            db_name,
+                            table,
+                        )
+                else:
+                    print("开始备份数据库：{}".format(db_name))
                     self.run_mysqldump(
                         self.conf["usr"],
                         self.conf["pwd"],
@@ -118,24 +144,16 @@ class Mysql(object):
                         backup_path,
                         self.conf["is_zip"],
                         db_name,
-                        table,
                     )
-            else:
-                print("Starting backup of database {}".format(db_name))
-                self.run_mysqldump(
-                    self.conf["usr"],
-                    self.conf["pwd"],
-                    self.conf["host"],
-                    self.conf["port"],
-                    backup_path,
-                    self.conf["is_zip"],
-                    db_name,
-                )
 
         # 删除过期文件
+        print("正在清理过期备份文件...")
         keep_days = int(self.conf["keep_days"])
         if keep_days > 0:
             delete_outdate_file(self.conf["backup_path"], keep_days)
+
+        print("所有任务均已完成，总耗时{:.2f}秒".format(time.time() - start_time))
+        return
 
     def backup_schedule(self):
         check_flag = self.check_conf(is_schedule=True)
