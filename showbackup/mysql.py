@@ -46,38 +46,40 @@ class Mysql(object):
         return True, ""
 
     def is_supported_binlog(self):
-        bin_log_cmd = """mysql -uroot -pCaord@mac510 -e 'show variables like "log_bin"'"""
+        bin_log_cmd = """mysql -u{} -p{} -e 'show variables like "log_bin"'""".format(
+            self.conf["usr"], self.conf["pwd"]
+        )
         result, _ = shell(bin_log_cmd)
         for item in result:
-            item_str = item.decode("utf-8")
-            if "log_bin" in item_str and "ON" in item_str:
+            item_str = item.decode("utf-8").upper()
+            if "LOG_BIN" in item_str and "ON" in item_str:
                 return True
-            elif "log_bin" in item_str and "OFF" in item_str:
+            elif "LOG_BIN" in item_str and "OFF" in item_str:
                 return False
         return False
 
-    def run_mysqldump(self, usr, pwd, host, port, backup_path, is_zip, db_name=None, table=None):
+    def run_mysqldump(
+        self, usr, pwd, host, port, backup_path, is_zip, is_binlog=False, db_name=None, table=None
+    ):
         """ 产生mysqldump命令，支持全库，单库，数据表备份语句
         """
+        default_params = "-F" if is_binlog else ""
         dump_cmd_temp = "mysqldump -u{usr} -p{pwd} -h{host} -P{port} {params} {source} > {target}"
         if db_name is None and table is None:
             # all databases backup
             source = ""
             target = os.path.join(backup_path, "all_databases.sql")
-            default_params = "-A -B -R --master-data=2"
+            default_params = "{} -A -B -R --master-data=2".format(default_params)
         elif table is not None:
             # tables backup
             source = "{} {}".format(db_name, table)
             target = os.path.join(backup_path, "table_{}.sql".format(table))
-            default_params = ""
+            default_params = "{}".format(default_params)
         elif db_name is not None:
             # one database backup
             source = "{}".format(db_name)
             target = os.path.join(backup_path, "db_{}.sql".format(db_name))
-            default_params = "-B -R --master-data=2"
-
-        if self.is_supported_binlog():
-            default_params = "-F {}".format(default_params)
+            default_params = "{} -B -R --master-data=2".format(default_params)
 
         if is_zip:
             source = "{}|gzip".format(source)
@@ -102,6 +104,11 @@ class Mysql(object):
         if not check_flag[0]:
             raise Exception(check_flag[1])
         today_path = os.path.join(self.conf["backup_path"], time.strftime("%Y%m%d_%H%M%S"))
+        # 检测binlog是否开启
+        is_binlog = self.is_supported_binlog()
+        if not is_binlog:
+            print("Warning: 您尚未开启binlog，强烈建议您在生产环境中开启binlog...")
+
         if not self.conf["source"]:
             # all databases backup if the DB_TARGET is empty
             backup_path = os.path.join(today_path, "all_databases")
@@ -114,6 +121,7 @@ class Mysql(object):
                 self.conf["port"],
                 backup_path,
                 self.conf["is_zip"],
+                is_binlog,
             )
         else:
             for target in self.conf["source"]:
@@ -131,6 +139,7 @@ class Mysql(object):
                             self.conf["port"],
                             backup_path,
                             self.conf["is_zip"],
+                            is_binlog,
                             db_name,
                             table,
                         )
@@ -143,6 +152,7 @@ class Mysql(object):
                         self.conf["port"],
                         backup_path,
                         self.conf["is_zip"],
+                        is_binlog,
                         db_name,
                     )
 

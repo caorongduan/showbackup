@@ -1,4 +1,4 @@
-# showbackup
+# ShowBackup
 
 #### 介绍
 `showbackup`是一个短小精干的MySQL数据库备份脚本，支持全库，指定库，指定表，定时快速备份。
@@ -66,6 +66,16 @@ $ showbackup --config
 # 手动执行一次数据库备份，备份完成程序自动退出
 $ showbackup mysql
   所有任务均已完成，总耗时12.32秒
+
+$ tree /backup/mysql
+  mysql
+  └── 201800712_135955
+      ├── testdb02
+      │   ├── table_user.sql.gz
+      │   └── table_visitor.sql.gz
+      └── test_len
+          └── db_test_len.sql.gz 
+
 ```
 
 后台运行
@@ -81,8 +91,17 @@ $ kill -9 25415
 ```
 
 使用supervisor运行
+```editorconfig
+# supervisor配置文件
+[program:showbackup]
+command=/usr/local/bin/showbackup mysql ; 程序启动命令
+```
 ```shell script
-
+$ supervisorctl
+  showbackup STOPED
+  supervisor> start showbackup
+  supervisor> status
+  showbackup RUNNING pid 18245, uptime 0 days, 0:0:03
 ```
 
 
