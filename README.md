@@ -9,6 +9,9 @@
 
 
 #### 安装
+```shell script
+$ pip install showbackup
+```
 
 #### 配置
 运行`showbackup --config`来查看配置文件的位置，使用vi编辑它：
@@ -94,7 +97,7 @@ $ kill -9 25415
 ```editorconfig
 # supervisor配置文件
 [program:showbackup]
-command=/usr/local/bin/showbackup mysql ; 程序启动命令
+command=/usr/local/bin/showbackup mysql -s ; 程序启动命令
 ```
 ```shell script
 $ supervisorctl
