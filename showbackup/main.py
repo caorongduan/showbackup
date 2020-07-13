@@ -13,12 +13,11 @@ Version: 1.0
 
 import os
 import click
-from showbackup.mysql import Mysql
+from showbackup.databases.mysql import Mysql
 from showbackup.utils import read_from_json_file
+from showbackup import __version__
 
-
-version = "0.1.0"
-config_filename = "example.conf.json"
+config_filename = "conf.json"
 
 
 def get_root_path():
@@ -39,7 +38,7 @@ def edit_config(tips):
 
 
 def get_version():
-    full_version = "showbackup (version {})".format(version)
+    full_version = "showbackup (version {})".format(__version__)
     return full_version
 
 
@@ -65,7 +64,8 @@ def mysql(schedule):
     if not config_exsits():
         edit_config("没有找到showbackup默认配置文件，请先创建并编辑")
         return
-    conf_dict = read_from_json_file(config_filename)
+    config_full_path = os.path.join(get_root_path(), config_filename)
+    conf_dict = read_from_json_file(config_full_path)
     mysql_conf = conf_dict.get("mysql", {})
     if not mysql_conf:
         edit_config("没有找到mysql备份相关的配置项，请编辑配置文件")

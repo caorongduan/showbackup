@@ -3,14 +3,14 @@
     "host": "localhost",
     "port": 3306,
     "usr": "root",
-    "pwd": "",
+    "pwd": "root",
     "source": [
         {"db": "testdb01", "tables": ["users", "posts"]},
         {"db": "testdb02"}
     ],
-    "backup_path": "./backup",
-    "is_zip": false,
-    "every_day_at": "17:49",
+    "backup_path": "/opt/backup/mysql",
+    "is_zip": true,
+    "every_day_at": "3:00",
     "keep_days": "3"
   }
 }

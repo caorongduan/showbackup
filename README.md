@@ -10,7 +10,7 @@
 
 #### 安装
 ```shell script
-$ pip install showbackup
+$ pip3 install showbackup
 ```
 
 #### 配置

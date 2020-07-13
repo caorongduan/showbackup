@@ -29,7 +29,7 @@ class Mysql(object):
         if is_schedule:
             required.append("every_day_at")
         if not all(k in self.conf and self.conf[k] for k in required):
-            return False, "参数异常！请完成配置必填项：user, pwd, backup_path, every_day_at"
+            return False, "参数异常！请完成配置必填项：usr, pwd, backup_path, every_day_at"
 
         # 设置默认值
         if not self.conf.get("host", ""):
