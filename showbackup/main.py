@@ -34,7 +34,7 @@ def config_exsits():
 
 def edit_config(tips):
     config_cmd = "vi {}".format(os.path.join(get_root_path(), config_filename))
-    click.echo("{}\n{}\n".format(tips, config_cmd))
+    click.echo(click.style("{}\n{}\n".format(tips, config_cmd), fg="yellow"))
 
 
 def get_version():

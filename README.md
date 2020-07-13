@@ -18,7 +18,7 @@ $ pip3 install showbackup
 ```shell
 $ showbackup --config
   请通过编辑showbackup配置文件来完成配置
-  vi /usr/local/showbackup/conf.json
+  vi /your/showbackup/path/conf.json
 ```
 配置文件说明
 ```json
@@ -61,6 +61,7 @@ $ showbackup --config
  * is_zip: 是否启用压缩
  * every_day_at: 每天执行备份的时间点，比如 3:00
  * keep_days: 历史备份文件保留最近几天
+ */
 ```
 
 #### 使用
@@ -97,7 +98,7 @@ $ kill -9 25415
 ```editorconfig
 # supervisor配置文件
 [program:showbackup]
-command=/usr/local/bin/showbackup mysql -s ; 程序启动命令
+command=/your/showbackup/path/bin/showbackup mysql -s ; 程序启动命令
 ```
 ```shell script
 $ supervisorctl

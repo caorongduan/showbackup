@@ -38,7 +38,6 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/caorongduan/showbackup",
-    py_modules=["backup"],
     packages=find_packages(),
     include_package_data=True,
     install_requires=get_requirements(),
