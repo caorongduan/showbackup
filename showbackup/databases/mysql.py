@@ -23,12 +23,30 @@ class Mysql(object):
     def __init__(self, conf):
         self.conf = conf
 
+        # 检测binlog是否开启
+        try:
+            self.is_binlog = self.is_supported_binlog()
+        except Exception as e:
+            print("Error: {}".format(e))
+            exit()
+        if not self.is_binlog:
+            print("Warning: 您尚未开启binlog，强烈建议您在生产环境中开启binlog...")
+
     def check_conf(self, is_schedule=False):
         # 检查必填项
+        checked_params = []
         required = ["usr", "pwd", "backup_path"]
         if is_schedule:
             required.append("every_day_at")
-        if not all(k in self.conf and self.conf[k] for k in required):
+
+        # 检查参数，pwd允许为空
+        for r in required:
+            if r == "pwd":
+                checked_params.append(r in self.conf)
+            else:
+                checked_params.append(r in self.conf and self.conf[r])
+
+        if not all(checked_params):
             return False, "参数异常！请完成配置必填项：usr, pwd, backup_path, every_day_at"
 
         # 设置默认值
@@ -49,7 +67,13 @@ class Mysql(object):
         bin_log_cmd = """mysql -u{} -p{} -e 'show variables like "log_bin"'""".format(
             self.conf["usr"], self.conf["pwd"]
         )
-        result, _ = shell(bin_log_cmd)
+        result, error = shell(bin_log_cmd)
+        if "Access denied" in error:
+            raise Exception(
+                "Access denied for user {}@{} 数据库账号密码有误，请重新设置".format(
+                    self.conf["usr"], self.conf["host"]
+                )
+            )
         for item in result:
             item_str = item.decode("utf-8").upper()
             if "LOG_BIN" in item_str and "ON" in item_str:
@@ -96,17 +120,10 @@ class Mysql(object):
         )
         shell(cmd)
 
-    def backup(self):
+    def _backup_now(self):
         # 定义备份文件夹生成规则 eg.'/backup/20170817_123205/database_name'
         start_time = time.time()
-        check_flag = self.check_conf()
-        if not check_flag[0]:
-            raise Exception(check_flag[1])
         today_path = os.path.join(self.conf["backup_path"], time.strftime("%Y%m%d_%H%M%S"))
-        # 检测binlog是否开启
-        is_binlog = self.is_supported_binlog()
-        if not is_binlog:
-            print("Warning: 您尚未开启binlog，强烈建议您在生产环境中开启binlog...")
 
         if not self.conf["source"]:
             # all databases backup if the DB_TARGET is empty
@@ -120,7 +137,7 @@ class Mysql(object):
                 self.conf["port"],
                 backup_path,
                 self.conf["is_zip"],
-                is_binlog,
+                self.is_binlog,
             )
         else:
             for target in self.conf["source"]:
@@ -138,7 +155,7 @@ class Mysql(object):
                             self.conf["port"],
                             backup_path,
                             self.conf["is_zip"],
-                            is_binlog,
+                            self.is_binlog,
                             db_name,
                             table,
                         )
@@ -151,7 +168,7 @@ class Mysql(object):
                         self.conf["port"],
                         backup_path,
                         self.conf["is_zip"],
-                        is_binlog,
+                        self.is_binlog,
                         db_name,
                     )
 
@@ -164,13 +181,21 @@ class Mysql(object):
         print("所有任务均已完成，总耗时{:.2f}秒".format(time.time() - start_time))
         return
 
-    def backup_schedule(self):
-        check_flag = self.check_conf(is_schedule=True)
-        if not check_flag[0]:
-            raise Exception(check_flag[1])
+    def _backup_schedule(self):
         at_time = self.conf["every_day_at"]
         print("将于每天 {} 开始执行备份任务".format(at_time))
-        schedule.every().day.at(at_time).do(self.backup)
+        schedule.every().day.at(at_time).do(self._backup_now)
         while True:
             schedule.run_pending()
             time.sleep(1)
+
+    def backup(self, is_schedule=False):
+        # 先做参数检查
+        check_flag = self.check_conf(is_schedule)
+        if not check_flag[0]:
+            print(check_flag[1])
+            exit()
+        if is_schedule:
+            self._backup_schedule()
+        else:
+            self._backup_now()

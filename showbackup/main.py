@@ -71,10 +71,12 @@ def mysql(schedule):
         edit_config("没有找到mysql备份相关的配置项，请编辑配置文件")
         return
     mysql = Mysql(mysql_conf)
-    if schedule:
-        mysql.backup_schedule()
+    if not schedule:
+        tips = "为了保证数据的一致性，showbackup会进行锁表操作，在此期间可能会影响数据库的读写，确定继续吗？"
+        if click.confirm(tips):
+            mysql.backup(schedule)
     else:
-        mysql.backup()
+        mysql.backup(schedule)
 
 
 if __name__ == "__main__":
