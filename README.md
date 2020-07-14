@@ -59,7 +59,10 @@ $ showbackup --config
       ]
  * backup_path: 填写备份文件存放的目录，比如 /backup/mysql
  * is_zip: 是否启用压缩
- * every_day_at: 每天执行备份的时间点，比如 3:00
+ * every_day_at: 
+    - 每天执行备份的时间点，支持HH:MM:SS 或者 HH:MM
+    - eg. 每天凌晨三点整，03:00
+    - eg. 每天凌晨三点零八分二十六秒，03:08:26
  * keep_days: 历史备份文件保留最近几天
  */
 ```

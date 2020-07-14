@@ -10,7 +10,7 @@
     ],
     "backup_path": "/opt/backup/mysql",
     "is_zip": true,
-    "every_day_at": "3:00",
+    "every_day_at": "03:00",
     "keep_days": "3"
   }
 }
