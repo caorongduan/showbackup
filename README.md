@@ -14,11 +14,12 @@ $ pip3 install showbackup
 ```
 
 #### 配置
+首次使用必须先配置运行参数
 运行`showbackup --config`来查看配置文件的位置，使用vi编辑它：
 ```shell
 $ showbackup --config
   请通过编辑showbackup配置文件来完成配置
-  vi /your/showbackup/path/conf.json
+  vi /your/python/path/dist-packages/showbackup/conf.json
 ```
 配置文件说明
 ```json
@@ -32,7 +33,7 @@ $ showbackup --config
         {"db": "testdb01", "tables": ["users", "posts"]},
         {"db": "testdb02"}
     ],
-    "backup_path": "./backup",
+    "backup_path": "/opt/showbackup/mysql",
     "is_zip": false,
     "every_day_at": "17:49",
     "keep_days": "3"
@@ -52,12 +53,12 @@ $ showbackup --config
     - 指定库，eg.备份testdb01和testdb02两个数据库
       source: [{'db':'testdb01'}, {'db': 'testdb02'}] 
 
-    - 指定表，eg.备份testdb01数据库和仅备份testdb02中的users和posts表
+    - 指定表，eg.仅备份testdb01数据库中的users和posts表和备份testdb02数据库
       source: [
-          {'db':'testdb01'}, 
-          {'db': 'testdb02', 'tables':['users', 'posts']}
+          {'db':'testdb01', 'tables':['users', 'posts']}, 
+          {'db': 'testdb02'}
       ]
- * backup_path: 填写备份文件存放的目录，比如 /backup/mysql
+ * backup_path: 填写备份文件存放的目录，默认 /opt/showbackup/mysql
  * is_zip: 是否启用压缩
  * every_day_at: 
     - 每天执行备份的时间点，支持HH:MM:SS 或者 HH:MM
@@ -74,7 +75,7 @@ $ showbackup --config
 $ showbackup mysql
   所有任务均已完成，总耗时12.32秒
 
-$ tree /backup/mysql
+$ tree /opt/showbackup/mysql
   mysql
   └── 201800712_135955
       ├── testdb02
@@ -93,7 +94,7 @@ $ showbackup mysql -s &
 
 # 结束后台任务（找出showbackup的PID，杀掉PID）
 $ ps -ef | grep showbackup
-  25415 16958 0 1:35PM ttys001 0:00.24 /usr/bin/python /usr/bin/showbackup mysql -s
+  25415 16958 0 1:35PM ttys001 0:00.24 /usr/bin/python3 /usr/local/bin/showbackup mysql -s
 $ kill -9 25415
 ```
 
@@ -101,13 +102,12 @@ $ kill -9 25415
 ```editorconfig
 # supervisor配置文件
 [program:showbackup]
-command=/your/showbackup/path/bin/showbackup mysql -s ; 程序启动命令
+command=/usr/local/bin/showbackup mysql -s ; 程序启动命令
 ```
 ```shell script
-$ supervisorctl
-  showbackup STOPED
-  supervisor> start showbackup
-  supervisor> status
+$ supervisorctl start showbackup
+  showbackup: started
+$ supervisorctl status
   showbackup RUNNING pid 18245, uptime 0 days, 0:0:03
 ```
 

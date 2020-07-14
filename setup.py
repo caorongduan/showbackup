@@ -35,6 +35,7 @@ setup(
     author="caorongduan",
     author_email="caorongduan@gmail.com",
     description="showbackup是一个短小精干的数据库备份工具",
+    license="Apache 2.0",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/caorongduan/showbackup",
@@ -42,7 +43,7 @@ setup(
     include_package_data=True,
     install_requires=get_requirements(),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Topic :: System :: Archiving :: Backup",
         "License :: OSI Approved :: Apache Software License",

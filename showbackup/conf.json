@@ -8,7 +8,7 @@
         {"db": "testdb01", "tables": ["users", "posts"]},
         {"db": "testdb02"}
     ],
-    "backup_path": "/opt/backup/mysql",
+    "backup_path": "/opt/showbackup/mysql",
     "is_zip": true,
     "every_day_at": "03:00",
     "keep_days": "3"
