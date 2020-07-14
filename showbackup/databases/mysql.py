@@ -94,7 +94,6 @@ class Mysql(object):
             source=source,
             target=target,
         )
-        # print(cmd)
         shell(cmd)
 
     def backup(self):
