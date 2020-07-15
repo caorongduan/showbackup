@@ -2,7 +2,7 @@
   "mysql": {
     "host": "localhost",
     "port": 3306,
-    "usr": "root",
+    "user": "root",
     "pwd": "root",
     "source": [
         {"db": "testdb01", "tables": ["users", "posts"]},

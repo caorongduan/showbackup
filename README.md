@@ -27,7 +27,7 @@ $ showbackup --config
   "mysql": {
     "host": "localhost",
     "port": 3306,
-    "usr": "root",
+    "user": "root",
     "pwd": "",
     "source": [
         {"db": "testdb01", "tables": ["users", "posts"]},
@@ -44,7 +44,7 @@ $ showbackup --config
 /**
  * host: 表示mysql的连接地址
  * port: mysql的端口号
- * usr: 用于备份数据库的账号
+ * user: 用于备份数据库的账号
  * pwd: 用于备份数据库的密码
  * source: 备份的数据内容（支持全库备份，指定库备份，指定表备份）
     - 全库备份

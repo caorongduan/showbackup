@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/user/bin/env python
 # coding: UTF-8
 # filename: mysql.py
 
@@ -35,7 +35,7 @@ class Mysql(object):
     def check_conf(self, is_schedule=False):
         # 检查必填项
         checked_params = []
-        required = ["usr", "pwd", "backup_path"]
+        required = ["user", "pwd", "backup_path"]
         if is_schedule:
             required.append("every_day_at")
 
@@ -47,7 +47,7 @@ class Mysql(object):
                 checked_params.append(r in self.conf and self.conf[r])
 
         if not all(checked_params):
-            return False, "参数异常！请完成配置必填项：usr, pwd, backup_path, every_day_at"
+            return False, "参数异常！请完成配置必填项：user, pwd, backup_path, every_day_at"
 
         # 设置默认值
         if not self.conf.get("host", ""):
@@ -65,13 +65,13 @@ class Mysql(object):
 
     def is_supported_binlog(self):
         bin_log_cmd = """mysql -u{} -p{} -e 'show variables like "log_bin"'""".format(
-            self.conf["usr"], self.conf["pwd"]
+            self.conf["user"], self.conf["pwd"]
         )
         result, error = shell(bin_log_cmd)
         if "Access denied" in error:
             raise Exception(
                 "Access denied for user {}@{} 数据库账号密码有误，请重新设置".format(
-                    self.conf["usr"], self.conf["host"]
+                    self.conf["user"], self.conf["host"]
                 )
             )
         for item in result:
@@ -82,35 +82,34 @@ class Mysql(object):
                 return False
         return False
 
-    def run_mysqldump(
-        self, usr, pwd, host, port, backup_path, is_zip, is_binlog=False, db_name=None, table=None
-    ):
+    def run_mysqldump(self, user, pwd, host, port, backup_path, is_zip, db_name=None, table=None):
         """ 产生mysqldump命令，支持全库，单库，数据表备份语句
+            备份库默认都加上 -R --triggers，避免生产环境备份，遗漏存储过程和触发器
         """
-        default_params = "-F" if is_binlog else ""
-        dump_cmd_temp = "mysqldump -u{usr} -p{pwd} -h{host} -P{port} {params} {source} > {target}"
+        default_params = "--master-data=2 --single-transaction" if self.is_binlog else ""
+        dump_cmd_temp = "mysqldump -u{user} -p{pwd} -h{host} -P{port} {params} {source} > {target}"
         if db_name is None and table is None:
             # all databases backup
             source = ""
             target = os.path.join(backup_path, "all_databases.sql")
-            default_params = "{} -A -B -R --master-data=2".format(default_params)
+            default_params = "{} -A -B -R --triggers".format(default_params)
         elif table is not None:
             # tables backup
             source = "{} {}".format(db_name, table)
             target = os.path.join(backup_path, "table_{}.sql".format(table))
-            default_params = "{}".format(default_params)
+            default_params = ""
         elif db_name is not None:
             # one database backup
             source = "{}".format(db_name)
             target = os.path.join(backup_path, "db_{}.sql".format(db_name))
-            default_params = "{} -B -R --master-data=2".format(default_params)
+            default_params = "{} -B -R --triggers".format(default_params)
 
         if is_zip:
             source = "{}|gzip".format(source)
             target = "{}.gz".format(target)
 
         cmd = dump_cmd_temp.format(
-            usr=usr,
+            user=user,
             pwd=pwd,
             host=host,
             port=port,
@@ -131,13 +130,12 @@ class Mysql(object):
             create_not_exists(backup_path)
             print("开始执行全库备份...")
             self.run_mysqldump(
-                self.conf["usr"],
+                self.conf["user"],
                 self.conf["pwd"],
                 self.conf["host"],
                 self.conf["port"],
                 backup_path,
                 self.conf["is_zip"],
-                self.is_binlog,
             )
         else:
             for target in self.conf["source"]:
@@ -149,26 +147,24 @@ class Mysql(object):
                     for table in tables:
                         print("开始备份数据表：{}".format(table))
                         self.run_mysqldump(
-                            self.conf["usr"],
+                            self.conf["user"],
                             self.conf["pwd"],
                             self.conf["host"],
                             self.conf["port"],
                             backup_path,
                             self.conf["is_zip"],
-                            self.is_binlog,
                             db_name,
                             table,
                         )
                 else:
                     print("开始备份数据库：{}".format(db_name))
                     self.run_mysqldump(
-                        self.conf["usr"],
+                        self.conf["user"],
                         self.conf["pwd"],
                         self.conf["host"],
                         self.conf["port"],
                         backup_path,
                         self.conf["is_zip"],
-                        self.is_binlog,
                         db_name,
                     )
 
