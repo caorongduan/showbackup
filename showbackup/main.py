@@ -13,11 +13,15 @@ Version: 1.0
 
 import os
 import click
+import logging
 from showbackup.databases.mysql import Mysql
 from showbackup.utils import read_from_json_file
+from showbackup.log import get_logger
 from showbackup import __version__
 
-config_filename = "conf.json"
+CONFIG_FILENAME = "conf.json"
+
+logger = get_logger()
 
 
 def get_root_path():
@@ -28,12 +32,12 @@ def get_root_path():
 
 def config_exsits():
     # 检查配置文件是否存在
-    config_path = os.path.join(get_root_path(), config_filename)
+    config_path = os.path.join(get_root_path(), CONFIG_FILENAME)
     return os.path.exists(config_path)
 
 
 def edit_config(tips):
-    config_cmd = "vi {}".format(os.path.join(get_root_path(), config_filename))
+    config_cmd = "vi {}".format(os.path.join(get_root_path(), CONFIG_FILENAME))
     click.echo(click.style("{}\n{}\n".format(tips, config_cmd), fg="yellow"))
 
 
@@ -64,7 +68,7 @@ def mysql(schedule):
     if not config_exsits():
         edit_config("没有找到showbackup默认配置文件，请先创建并编辑")
         return
-    config_full_path = os.path.join(get_root_path(), config_filename)
+    config_full_path = os.path.join(get_root_path(), CONFIG_FILENAME)
     conf_dict = read_from_json_file(config_full_path)
     mysql_conf = conf_dict.get("mysql", {})
     if not mysql_conf:
@@ -72,7 +76,7 @@ def mysql(schedule):
         return
     mysql = Mysql(mysql_conf)
     if not schedule:
-        tips = "为了保证数据的一致性，showbackup会进行锁表操作，在此期间可能会影响数据库的读写，确定继续吗？"
+        tips = "为了保证数据的一致性，showbackup可能会进行锁表操作，一旦锁表将会影响数据库的写入，确定继续吗？"
         if click.confirm(tips):
             mysql.backup(schedule)
     else:

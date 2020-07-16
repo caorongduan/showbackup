@@ -15,8 +15,12 @@ mysql相关功能
 
 import os
 import time
+import logging
 import schedule
 from showbackup.utils import create_not_exists, delete_outdate_file, shell
+from showbackup.log import get_logger
+
+logger = get_logger()
 
 
 class Mysql(object):
@@ -27,10 +31,10 @@ class Mysql(object):
         try:
             self.is_binlog = self.is_supported_binlog()
         except Exception as e:
-            print("Error: {}".format(e))
+            logger.error("Error: {}".format(e), exc_info=True)
             exit()
         if not self.is_binlog:
-            print("Warning: 您尚未开启binlog，强烈建议您在生产环境中开启binlog...")
+            logger.warn("您尚未开启binlog，强烈建议您在生产环境中开启binlog...")
 
     def check_conf(self, is_schedule=False):
         # 检查必填项
@@ -125,10 +129,10 @@ class Mysql(object):
         today_path = os.path.join(self.conf["backup_path"], time.strftime("%Y%m%d_%H%M%S"))
 
         if not self.conf["source"]:
-            # all databases backup if the DB_TARGET is empty
+            # all databases backup if the source is empty
             backup_path = os.path.join(today_path, "all_databases")
             create_not_exists(backup_path)
-            print("开始执行全库备份...")
+            logger.info("开始执行全库备份...")
             self.run_mysqldump(
                 self.conf["user"],
                 self.conf["pwd"],
@@ -145,7 +149,7 @@ class Mysql(object):
                 create_not_exists(backup_path)
                 if len(tables) > 0:
                     for table in tables:
-                        print("开始备份数据表：{}".format(table))
+                        logger.info("开始备份数据表：{}".format(table))
                         self.run_mysqldump(
                             self.conf["user"],
                             self.conf["pwd"],
@@ -157,7 +161,7 @@ class Mysql(object):
                             table,
                         )
                 else:
-                    print("开始备份数据库：{}".format(db_name))
+                    logger.info("开始备份数据库：{}".format(db_name))
                     self.run_mysqldump(
                         self.conf["user"],
                         self.conf["pwd"],
@@ -169,17 +173,17 @@ class Mysql(object):
                     )
 
         # 删除过期文件
-        print("正在清理过期备份文件...")
+        logger.info("正在清理过期备份文件...")
         keep_days = int(self.conf["keep_days"])
         if keep_days > 0:
             delete_outdate_file(self.conf["backup_path"], keep_days)
 
-        print("所有任务均已完成，总耗时{:.2f}秒".format(time.time() - start_time))
+        logger.info("所有任务均已完成，总耗时{:.2f}秒".format(time.time() - start_time))
         return
 
     def _backup_schedule(self):
         at_time = self.conf["every_day_at"]
-        print("将于每天 {} 开始执行备份任务".format(at_time))
+        logger.info("将于每天 {} 开始执行备份任务".format(at_time))
         schedule.every().day.at(at_time).do(self._backup_now)
         while True:
             schedule.run_pending()
@@ -189,7 +193,7 @@ class Mysql(object):
         # 先做参数检查
         check_flag = self.check_conf(is_schedule)
         if not check_flag[0]:
-            print(check_flag[1])
+            logger.error(check_flag[1])
             exit()
         if is_schedule:
             self._backup_schedule()

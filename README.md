@@ -72,7 +72,7 @@ $ showbackup --config
 手动执行
 ```shell script
 # 手动执行一次数据库备份，备份完成程序自动退出
-$ showbackup mysql
+$ sudo showbackup mysql
   所有任务均已完成，总耗时12.32秒
 
 $ tree /opt/showbackup/mysql
@@ -89,7 +89,7 @@ $ tree /opt/showbackup/mysql
 后台运行
 ```shell script
 # 开始一个数据库定时备份的后台任务
-$ showbackup mysql -s &
+$ sudo showbackup mysql -s &
   将于每天 03:00 开始执行备份任务...
 
 # 结束后台任务（找出showbackup的PID，杀掉PID）
