@@ -16,7 +16,7 @@ import click
 import logging
 from showbackup.databases.mysql import Mysql
 from showbackup.utils import read_from_json_file
-from showbackup.log import get_logger
+from showbackup.logger import get_logger
 from showbackup import __version__
 
 CONFIG_FILENAME = "conf.json"

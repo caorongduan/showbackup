@@ -34,7 +34,7 @@ setup(
     version=__version__,
     author="caorongduan",
     author_email="caorongduan@gmail.com",
-    description="showbackup是一个短小精干的数据库备份工具",
+    description="A MySQL backup tool, Simple, Fast and Powerful. 一个简单，高效，强大的MySQL备份工具。",
     license="Apache 2.0",
     long_description=long_description,
     long_description_content_type="text/markdown",

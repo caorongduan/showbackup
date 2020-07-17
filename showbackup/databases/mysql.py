@@ -18,7 +18,7 @@ import time
 import logging
 import schedule
 from showbackup.utils import create_not_exists, delete_outdate_file, shell
-from showbackup.log import get_logger
+from showbackup.logger import get_logger
 
 logger = get_logger()
 
