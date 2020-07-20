@@ -45,14 +45,13 @@ LOGGING_CONFIG = {
             "stream": "ext://sys.stdout",  # Default is stderr
         },
         "info_rotating_file_handler": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "INFO",
             "formatter": "standard",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(LOG_DIR, LOG_FILENAME),
-            "when": "midnight",
-            "interval": 1,
-            "backupCount": 6,
-            "encoding": "utf-8",
+            "mode": "a",
+            "maxBytes": 1048576,
+            "backupCount": 10,
         },
         "error_file_handler": {
             "level": "WARNING",
