@@ -8,5 +8,5 @@
 :license: Apache2, see LICENSE for more details.
 """
 
-version_info = (0, 1, 3)
+version_info = (0, 1, 4)
 __version__ = ".".join([str(v) for v in version_info])

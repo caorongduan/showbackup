@@ -17,15 +17,61 @@ import os
 import time
 import logging
 import schedule
-from showbackup.utils import create_not_exists, delete_outdate_file, shell
+import configparser
+from showbackup.utils import create_not_exists, delete_outdate_file, shell, the_moment_dirname
 from showbackup.logger import get_logger
+from showbackup.storages import Storage
 
 logger = get_logger()
+
+
+def parse_config(config_path):
+    """ 根据配置文件路径，读取文件，获取mysql相关配置
+        :returns dict
+    """
+    cf = configparser.ConfigParser()
+    cf.read(config_path, encoding="utf-8")
+    mysql_conf_list = cf.items("mysql")
+    mysql_conf_dict = {item[0]: item[1] for item in mysql_conf_list}
+
+    # 处理全局字段
+    global_conf_list = cf.items("global")
+    global_conf_dict = {item[0]: item[1] for item in global_conf_list}
+    mysql_conf_dict["global"] = global_conf_dict
+
+    # 处理source字段
+    source = []
+    source_lis = mysql_conf_dict["source"].split(",")
+    for database in source_lis:
+        if "*" in database:
+            source = []
+            break
+        elif ":" in database:
+            db_tables = database.split(":")
+            source.append({"db": db_tables[0], "tables": db_tables[1:]})
+        else:
+            source.append({"db": database})
+    mysql_conf_dict["source"] = source
+
+    # 处理存储方式
+    storage_conf_list = cf.items(mysql_conf_dict["storage"])
+    storage_conf_dict = {item[0]: item[1] for item in storage_conf_list}
+    mysql_conf_dict["storage"] = storage_conf_dict
+
+    # 处理压缩
+    mysql_conf_dict["is_zip"] = int(mysql_conf_dict["is_zip"])
+
+    return mysql_conf_dict
 
 
 class Mysql(object):
     def __init__(self, conf):
         self.conf = conf
+        # 定义目标文件文件的列表，用于存储
+        self.target_files = []
+
+        # 此次备份以时间命名的文件夹名称
+        self.moment_dir = the_moment_dirname()
 
         # 检测binlog是否开启
         try:
@@ -39,19 +85,21 @@ class Mysql(object):
     def check_conf(self, is_schedule=False):
         # 检查必填项
         checked_params = []
-        required = ["user", "pwd", "backup_path"]
+        required = ["username", "password", "temp_path"]
         if is_schedule:
             required.append("every_day_at")
 
-        # 检查参数，pwd允许为空
+        # 检查参数，password允许为空
         for r in required:
-            if r == "pwd":
+            if r == "password":
                 checked_params.append(r in self.conf)
+            elif r == "temp_path":
+                checked_params.append(r in self.conf["global"])
             else:
                 checked_params.append(r in self.conf and self.conf[r])
 
         if not all(checked_params):
-            return False, "参数异常！请完成配置必填项：user, pwd, backup_path, every_day_at"
+            return False, "参数异常！请完成配置必填项：username, password, backup_path, every_day_at"
 
         # 设置默认值
         if not self.conf.get("host", ""):
@@ -69,13 +117,13 @@ class Mysql(object):
 
     def is_supported_binlog(self):
         bin_log_cmd = """mysql -u{} -p{} -e 'show variables like "log_bin"'""".format(
-            self.conf["user"], self.conf["pwd"]
+            self.conf["username"], self.conf["password"]
         )
         result, error = shell(bin_log_cmd)
         if "Access denied" in error:
             raise Exception(
                 "Access denied for user {}@{} 数据库账号密码有误，请重新设置".format(
-                    self.conf["user"], self.conf["host"]
+                    self.conf["username"], self.conf["host"]
                 )
             )
         for item in result:
@@ -86,12 +134,16 @@ class Mysql(object):
                 return False
         return False
 
-    def run_mysqldump(self, user, pwd, host, port, backup_path, is_zip, db_name=None, table=None):
+    def run_mysqldump(
+        self, username, password, host, port, backup_path, is_zip, db_name=None, table=None
+    ):
         """ 产生mysqldump命令，支持全库，单库，数据表备份语句
             备份库默认都加上 -R --triggers，避免生产环境备份，遗漏存储过程和触发器
         """
         default_params = "--master-data=2 --single-transaction" if self.is_binlog else ""
-        dump_cmd_temp = "mysqldump -u{user} -p{pwd} -h{host} -P{port} {params} {source} > {target}"
+        dump_cmd_temp = (
+            "mysqldump -u{username} -p{password} -h{host} -P{port} {params} {source} > {target}"
+        )
         if db_name is None and table is None:
             # all databases backup
             source = ""
@@ -112,9 +164,12 @@ class Mysql(object):
             source = "{}|gzip".format(source)
             target = "{}.gz".format(target)
 
+        # 将临时目标文件存放至目标列表，用于存储
+        self.target_files.append(target)
+
         cmd = dump_cmd_temp.format(
-            user=user,
-            pwd=pwd,
+            username=username,
+            password=password,
             host=host,
             port=port,
             params=default_params,
@@ -126,7 +181,7 @@ class Mysql(object):
     def _backup_now(self):
         # 定义备份文件夹生成规则 eg.'/backup/20170817_123205/database_name'
         start_time = time.time()
-        today_path = os.path.join(self.conf["backup_path"], time.strftime("%Y%m%d_%H%M%S"))
+        today_path = os.path.join(self.conf["global"]["temp_path"], self.moment_dir)
 
         if not self.conf["source"]:
             # all databases backup if the source is empty
@@ -134,8 +189,8 @@ class Mysql(object):
             create_not_exists(backup_path)
             logger.info("开始执行全库备份...")
             self.run_mysqldump(
-                self.conf["user"],
-                self.conf["pwd"],
+                self.conf["username"],
+                self.conf["password"],
                 self.conf["host"],
                 self.conf["port"],
                 backup_path,
@@ -151,8 +206,8 @@ class Mysql(object):
                     for table in tables:
                         logger.info("开始备份数据表：{}".format(table))
                         self.run_mysqldump(
-                            self.conf["user"],
-                            self.conf["pwd"],
+                            self.conf["username"],
+                            self.conf["password"],
                             self.conf["host"],
                             self.conf["port"],
                             backup_path,
@@ -163,8 +218,8 @@ class Mysql(object):
                 else:
                     logger.info("开始备份数据库：{}".format(db_name))
                     self.run_mysqldump(
-                        self.conf["user"],
-                        self.conf["pwd"],
+                        self.conf["username"],
+                        self.conf["password"],
                         self.conf["host"],
                         self.conf["port"],
                         backup_path,
@@ -172,11 +227,8 @@ class Mysql(object):
                         db_name,
                     )
 
-        # 删除过期文件
-        logger.info("正在清理过期备份文件...")
-        keep_days = int(self.conf["keep_days"])
-        if keep_days > 0:
-            delete_outdate_file(self.conf["backup_path"], keep_days)
+        # 处理存储逻辑
+        self._do_storage()
 
         logger.info("所有任务均已完成，总耗时{:.2f}秒".format(time.time() - start_time))
         return
@@ -199,3 +251,13 @@ class Mysql(object):
             self._backup_schedule()
         else:
             self._backup_now()
+
+    def _do_storage(self):
+        """ 调用存储，处理存储工作
+        """
+        ext = self.conf["storage"]["type"]
+        kwargs = self.conf["storage"]
+        kwargs["root"] = self.conf["global"]["temp_path"]
+        kwargs["data_dir"] = self.moment_dir
+        s = Storage.create(ext, kwargs)
+        s.storage()

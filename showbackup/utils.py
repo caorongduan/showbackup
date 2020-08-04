@@ -16,6 +16,7 @@ utils.py
 
 import os
 import json
+import time
 import shutil
 from datetime import datetime, timedelta
 
@@ -86,3 +87,9 @@ def shell(cmd):
     if isinstance(stderr, bytes):
         stderr = stderr.decode("utf-8")
     return stdout, stderr
+
+
+def the_moment_dirname():
+    """ 生成当前时刻的文件夹名称
+    """
+    return time.strftime("%Y%m%d_%H%M%S")

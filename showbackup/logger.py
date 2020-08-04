@@ -9,7 +9,7 @@ log.py
 处理统一日志
 
 Usage:
-    >>> from showbackup.log import get_logger
+    >>> from showbackup.logger import get_logger
     >>> logger = get_logger()
     >>> logger.info('helloworld')
 
